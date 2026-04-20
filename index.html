@@ -2,65 +2,64 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>异常态：仙林跑酷 v4.0 (Full Narrative Edition)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>异常态：仙林跑酷 v4.6 (Final Stable)</title>
     <style>
-        body { margin: 0; background: #0a0a0c; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; color: #00ffaa; font-family: 'Consolas', 'Courier New', monospace; }
-        #game-container { position: relative; border: 2px solid #333; box-shadow: 0 0 50px rgba(0,0,0,0.8); width: 800px; height: 400px; }
-        canvas { background: #000; display: block; }
+        :root { --main-color: #00ffaa; --cat-color: #ffca28; }
+        body { margin: 0; background: #0a0a0c; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; color: var(--main-color); font-family: 'Consolas', 'Courier New', monospace; touch-action: none; }
         
+        #game-container { position: relative; width: 100%; max-width: 800px; height: 400px; background: #000; border: 2px solid #333; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+
         /* UI 叠加层 */
-        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; z-index: 10; }
-        .stat-item { font-size: 14px; margin-bottom: 5px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-left: 3px solid #00ffaa; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; z-index: 10; }
+        .stat-item { font-size: 14px; margin-bottom: 5px; background: rgba(0,0,0,0.7); padding: 4px 10px; border-left: 3px solid var(--main-color); }
+
+        /* 表情包日志系统 */
+        #msg-log { position: absolute; top: 10px; right: 10px; width: 180px; height: 100px; overflow: hidden; pointer-events: none; font-size: 11px; display: flex; flex-direction: column-reverse; }
+        .log-entry { background: rgba(0,255,170,0.1); border-right: 2px solid var(--main-color); margin-bottom: 4px; padding: 4px; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* 移动端控制按钮 */
+        .mobile-ctrl { position: absolute; bottom: 20px; display: none; width: 100%; justify-content: space-between; padding: 0 30px; box-sizing: border-box; pointer-events: auto; z-index: 50; }
+        .ctrl-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.05); border: 2px solid var(--main-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: var(--main-color); font-weight: bold; -webkit-user-select: none; }
+        .ctrl-btn:active { background: var(--main-color); color: #000; }
+        @media (max-width: 850px) { #game-container { height: 65vh; } .mobile-ctrl { display: flex; } }
+
+        /* 覆盖层通用样式 */
+        #overlay, #novel-viewer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background: rgba(10, 10, 12, 0.98); }
 
         /* 启动界面 */
-        #overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 12, 0.98);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 100; text-align: center;
-        }
-        button {
-            background: transparent; border: 1px solid #00ffaa; color: #00ffaa;
-            padding: 12px 30px; font-family: 'Consolas'; font-size: 18px; cursor: pointer;
-            transition: all 0.3s; margin: 10px;
-        }
-        button:hover { background: #00ffaa; color: #000; box-shadow: 0 0 15px #00ffaa; }
+        #overlay { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         
-        /* 完整背景阅读器 */
-        #novel-viewer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0d0d0f; color: #b0b0b0; display: none; padding: 30px 50px;
-            box-sizing: border-box; overflow-y: auto; z-index: 200; text-align: left;
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.8;
-            border: 1px solid #00ffaa;
+        /* 完整小说阅读器 - 静态结构版 */
+        #novel-viewer { 
+            display: none; padding: 30px; box-sizing: border-box; overflow-y: auto; 
+            text-align: left; background: #0d0d0f; border: 1px solid var(--main-color); 
+            z-index: 200; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.6; color: #ccc;
         }
-        #novel-viewer::-webkit-scrollbar { width: 6px; }
-        #novel-viewer::-webkit-scrollbar-thumb { background: #00ffaa; border-radius: 3px; }
-        
-        #novel-viewer h2 { color: #00ffaa; text-align: center; font-size: 24px; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        #novel-viewer h3 { color: #00ffaa; font-size: 18px; margin-top: 25px; border-left: 4px solid #00ffaa; padding-left: 10px; }
-        #novel-viewer p { margin: 15px 0; font-size: 15px; letter-spacing: 0.5px; }
-        #novel-viewer strong { color: #00ffaa; }
-        #novel-viewer blockquote { border-left: 4px solid #444; padding-left: 15px; font-style: italic; color: #888; margin: 20px 0; }
-        #novel-viewer .formula { text-align: center; color: #00ffaa; font-weight: bold; font-size: 18px; margin: 30px 0; }
-        
-        .close-novel { position: sticky; top: 0; float: right; background: #00ffaa; color: #000; border: none; padding: 5px 15px; cursor: pointer; font-family: 'Consolas'; font-weight: bold; }
+        #novel-viewer h2 { color: var(--main-color); text-align: center; margin-top: 0; }
+        #novel-viewer h3 { color: var(--main-color); border-left: 3px solid var(--main-color); padding-left: 10px; margin-top: 25px; }
+        #novel-viewer p { font-size: 14px; margin: 12px 0; }
+        #novel-viewer .formula { text-align: center; color: var(--main-color); font-weight: bold; margin-top: 30px; }
+        #novel-viewer::-webkit-scrollbar { width: 5px; }
+        #novel-viewer::-webkit-scrollbar-thumb { background: var(--main-color); }
 
-        h1 { font-size: 32px; letter-spacing: 3px; margin-bottom: 5px; text-shadow: 0 0 10px #00ffaa; }
-        .code-text { color: #444; font-size: 11px; margin-bottom: 20px; }
+        button { background: transparent; border: 1px solid var(--main-color); color: var(--main-color); padding: 10px 20px; margin: 10px; cursor: pointer; font-family: inherit; }
+        button:hover { background: var(--main-color); color: #000; }
+        .close-novel { position: sticky; top: 0; float: right; background: var(--main-color); color: #000; padding: 5px 15px; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="game-container">
         <div id="overlay">
-            <h1>NJU_CAT_OS v4.0</h1>
-            <p class="code-text">Mounting full_story.bin... [COMPLETE]<br>Audio driver active: game.wav [LOOP]</p>
+            <h1 style="text-shadow: 0 0 10px var(--main-color);">NJU_CAT_OS v4.6</h1>
+            <p style="color:#555; font-size:12px;">SYSTEM_STATUS: READY TO BOOT</p>
             <div style="display: flex;">
                 <button id="start-btn">RUN PROGRAM</button>
                 <button id="view-novel-btn">VIEW BACKGROUND</button>
             </div>
-            <p style="font-size: 12px; color: #555; margin-top: 15px;">W/SPACE: JUMP | A/D: MOVE</p>
         </div>
 
         <div id="novel-viewer">
@@ -99,110 +98,189 @@
             <div class="stat-item">OS_MODE: <span id="state-text">HUMAN</span></div>
             <div class="stat-item">SCORE: <span id="score-text">0</span></div>
         </div>
+
+        <div id="msg-log"></div>
+
         <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+        <div class="mobile-ctrl">
+            <div style="display:flex; gap:10px;">
+                <div class="ctrl-btn" id="btn-left">A</div>
+                <div class="ctrl-btn" id="btn-right">D</div>
+            </div>
+            <div class="ctrl-btn" id="btn-jump" style="width:100px; border-radius:15px; font-size:12px;">JUMP</div>
+        </div>
     </div>
 
-    <audio id="bgm" loop>
-        <source src="game.wav" type="audio/wav">
-    </audio>
+    <audio id="bgm" loop><source src="game.wav" type="audio/wav"></audio>
 
 <script>
-// 脚本部分保持 3.5 版本的核心逻辑
+// --- 表情包库 ---
+const EMOTES = {
+    transform: ["(≡^∇^≡)", "ฅ(⌯͒•̩̩̩́ ˑ̫ •̩̩̩̀⌯͒)ฅ", "(=｀ω´=)", "ᶘ ᵒ㉨ᵒᶅ"],
+    score: ["(๑•̀ㅂ•́)و✧", "ヾ(=ﾟ･ﾟ=)ﾉ", "(^･ｪ･^)", "o(^▽^)o"],
+    death: ["_(:з」∠)_", "(=ＴェＴ=)", "(╯°Д°)╯", "SYSTEM_HALT"]
+};
+
+function pushLog(type, text) {
+    const logBox = document.getElementById('msg-log');
+    const emote = EMOTES[type][Math.floor(Math.random() * EMOTES[type].length)];
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `[${new Date().toLocaleTimeString().split(' ')[0]}] ${emote}<br>${text}`;
+    logBox.prepend(entry);
+    if(logBox.childNodes.length > 3) logBox.removeChild(logBox.lastChild);
+}
+
+// --- 游戏常数与状态 ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const bgm = document.getElementById('bgm');
-const startBtn = document.getElementById('start-btn');
-const viewNovelBtn = document.getElementById('view-novel-btn');
-const novelViewer = document.getElementById('novel-viewer');
-const closeNovelBtn = document.getElementById('close-novel');
-const overlay = document.getElementById('overlay');
-
-const GRAVITY = 0.7;
-const GROUND_Y = 350;
-const FRICTION = 0.85;
+const keys = { a: false, d: false, space: false };
+const GRAVITY = 0.7, GROUND_Y = 350, FRICTION = 0.85;
 const P_STATE = { HUMAN: 'HUMAN', CAT: 'CAT' };
 const CONFIG = {
     [P_STATE.HUMAN]: { width: 30, height: 60, jump: -15, speed: 0.8, maxVx: 5, color: '#00ffaa' },
     [P_STATE.CAT]: { width: 40, height: 25, jump: -11.5, speed: 1.5, maxVx: 9, color: '#ffca28' }
 };
 
-let particles = [];
-for(let i=0; i<40; i++) particles.push({ x: Math.random()*800, y: Math.random()*400, v: Math.random()*2+1, s: Math.random()*2 });
-
-function drawBG() {
-    ctx.fillStyle = '#0a0a0c'; ctx.fillRect(0,0,800,400);
-    ctx.fillStyle = 'rgba(0, 255, 170, 0.08)';
-    particles.forEach(p => { ctx.fillRect(p.x, p.y, p.s, p.s*6); p.y += p.v; if(p.y > 400) p.y = -10; });
-    ctx.strokeStyle = '#222'; ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(800, GROUND_Y); ctx.stroke();
-}
-
 let player = {
     x: 100, y: 0, vx: 0, vy: 0, state: P_STATE.HUMAN, isGrounded: false,
     update() {
         let conf = CONFIG[this.state];
-        if(keys.a) this.vx -= conf.speed; if(keys.d) this.vx += conf.speed;
-        this.vx *= FRICTION; this.x += this.vx;
+        if (keys.a) this.vx -= conf.speed;
+        if (keys.d) this.vx += conf.speed;
+        this.vx *= FRICTION;
+        this.x += this.vx;
         this.x = Math.max(0, Math.min(800 - conf.width, this.x));
-        if((keys.w || keys.space) && this.isGrounded) { this.vy = conf.jump; this.isGrounded = false; }
-        this.vy += GRAVITY; this.y += this.vy;
-        if(this.y + conf.height >= GROUND_Y) { this.y = GROUND_Y - conf.height; this.vy = 0; this.isGrounded = true; }
+
+        if (keys.space && this.isGrounded) {
+            this.vy = conf.jump;
+            this.isGrounded = false;
+        }
+        this.vy += GRAVITY;
+        this.y += this.vy;
+
+        if (this.y + conf.height >= GROUND_Y) {
+            this.y = GROUND_Y - conf.height;
+            this.vy = 0;
+            this.isGrounded = true;
+        }
     },
     draw() {
-        let conf = CONFIG[this.state]; ctx.fillStyle = conf.color; ctx.fillRect(this.x, this.y, conf.width, conf.height);
-        ctx.fillStyle = '#000'; let eyeX = (this.vx >= 0) ? this.x + conf.width - 10 : this.x + 5;
+        let conf = CONFIG[this.state];
+        ctx.fillStyle = conf.color;
+        ctx.fillRect(this.x, this.y, conf.width, conf.height);
+        ctx.fillStyle = '#000';
+        let eyeX = (this.vx >= 0) ? this.x + conf.width - 10 : this.x + 5;
         ctx.fillRect(eyeX, this.y + 5, 5, 5);
     }
 };
 
 let obstacles = [], score = 0, isGameOver = false, gameStarted = false;
-const keys = { w:false, a:false, d:false, space:false };
 
 function checkTransform() {
-    if(Math.random() < 0.004) {
+    if (Math.random() < 0.004) {
         let oldH = CONFIG[player.state].height;
         player.state = (player.state === P_STATE.HUMAN) ? P_STATE.CAT : P_STATE.HUMAN;
         player.y += (oldH - CONFIG[player.state].height);
-        if(player.y + CONFIG[player.state].height > GROUND_Y) player.y = GROUND_Y - CONFIG[player.state].height;
+        if (player.y + CONFIG[player.state].height > GROUND_Y) player.y = GROUND_Y - CONFIG[player.state].height;
+        
         document.getElementById('state-text').innerText = player.state;
         document.getElementById('state-text').style.color = CONFIG[player.state].color;
+        pushLog('transform', `量子坍缩: ${player.state}态`);
     }
 }
 
 class Obstacle {
-    constructor() { this.w = 25; this.h = 30 + Math.random()*30; this.x = 800; this.y = GROUND_Y - this.h; this.speed = 5 + (score/15); }
+    constructor() {
+        this.w = 25; this.h = 30 + Math.random() * 30;
+        this.x = 800; this.y = GROUND_Y - this.h;
+        this.speed = 5 + (score / 15);
+    }
     update() { this.x -= this.speed; }
     draw() { ctx.fillStyle = '#ff4444'; ctx.fillRect(this.x, this.y, this.w, this.h); }
 }
 
 function loop() {
-    if(!gameStarted || isGameOver) return;
-    drawBG(); checkTransform(); player.update(); player.draw();
-    if(Math.random() < 0.015 && (obstacles.length === 0 || 800 - obstacles[obstacles.length-1].x > 250)) obstacles.push(new Obstacle());
-    for(let i=obstacles.length-1; i>=0; i--) {
-        obstacles[i].update(); obstacles[i].draw();
-        let pC = CONFIG[player.state];
-        if(player.x+5 < obstacles[i].x+obstacles[i].w && player.x+pC.width-5 > obstacles[i].x && player.y+5 < obstacles[i].y+obstacles[i].h && player.y+pC.height-5 > obstacles[i].y) isGameOver = true;
-        if(obstacles[i].x + obstacles[i].w < 0) { obstacles.splice(i, 1); score++; document.getElementById('score-text').innerText = score; }
+    if (!gameStarted || isGameOver) return;
+    ctx.fillStyle = '#0a0a0c'; ctx.fillRect(0, 0, 800, 400);
+    ctx.strokeStyle = '#222'; ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(800, GROUND_Y); ctx.stroke();
+    
+    checkTransform(); player.update(); player.draw();
+
+    if (Math.random() < 0.015 && (obstacles.length === 0 || 800 - obstacles[obstacles.length-1].x > 250)) {
+        obstacles.push(new Obstacle());
     }
-    if(isGameOver) {
-        bgm.pause(); ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,800,400);
-        ctx.fillStyle = '#fff'; ctx.font = '24px Consolas'; ctx.textAlign = 'center'; ctx.fillText('GAME OVER', 400, 200);
-    } else { requestAnimationFrame(loop); }
+    
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].update();
+        obstacles[i].draw();
+        let pC = CONFIG[player.state];
+        if (player.x + 5 < obstacles[i].x + obstacles[i].w && 
+            player.x + pC.width - 5 > obstacles[i].x && 
+            player.y + 5 < obstacles[i].y + obstacles[i].h && 
+            player.y + pC.height - 5 > obstacles[i].y) {
+            isGameOver = true;
+            pushLog('death', '致命错误: 逻辑溢出');
+            gameOverScreen();
+        }
+        if (obstacles[i].x + obstacles[i].w < 0) {
+            obstacles.splice(i, 1);
+            score++;
+            document.getElementById('score-text').innerText = score;
+            if (score % 10 === 0) pushLog('score', `算法优化: ${score}pts`);
+        }
+    }
+    if (!isGameOver) requestAnimationFrame(loop);
 }
 
-startBtn.onclick = () => { overlay.style.display = 'none'; gameStarted = true; bgm.play(); loop(); };
+function gameOverScreen() {
+    bgm.pause();
+    ctx.fillStyle = 'rgba(255,0,0,0.2)'; ctx.fillRect(0,0,800,400);
+    ctx.fillStyle = '#fff'; ctx.font = '20px Consolas'; ctx.textAlign = 'center';
+    ctx.fillText('CRITICAL_ERROR: SYSTEM_HALTED', 400, 180);
+    ctx.font = '14px Consolas'; ctx.fillText('TAP OR SPACE TO REBOOT', 400, 220);
+}
+
+// --- 控制交互 ---
+const startBtn = document.getElementById('start-btn');
+const overlay = document.getElementById('overlay');
+const viewNovelBtn = document.getElementById('view-novel-btn');
+const novelViewer = document.getElementById('novel-viewer');
+const closeNovelBtn = document.getElementById('close-novel');
+
+startBtn.onclick = () => { overlay.style.display = 'none'; gameStarted = true; bgm.play(); pushLog('score', '核心加载成功'); loop(); };
 viewNovelBtn.onclick = () => { novelViewer.style.display = 'block'; };
 closeNovelBtn.onclick = () => { novelViewer.style.display = 'none'; };
 
-window.addEventListener('keydown', e => { 
-    let k = e.key.toLowerCase(); 
-    if(['w','a','d',' '].includes(k)) keys[k===' '?'space':k] = true;
-    if(k === ' ' && isGameOver) location.reload();
+// 移动端控制绑定
+const setupMobileBtn = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+};
+setupMobileBtn('btn-left', 'a');
+setupMobileBtn('btn-right', 'd');
+setupMobileBtn('btn-jump', 'space');
+
+// 键盘绑定
+window.addEventListener('keydown', e => {
+    let k = e.key.toLowerCase();
+    if (k === 'a') keys.a = true;
+    if (k === 'd') keys.d = true;
+    if (k === ' ' || k === 'w') keys.space = true;
+    if (isGameOver && k === ' ') location.reload();
 });
-window.addEventListener('keyup', e => { 
-    let k = e.key.toLowerCase(); 
-    if(['w','a','d',' '].includes(k)) keys[k===' '?'space':k] = false;
+window.addEventListener('keyup', e => {
+    let k = e.key.toLowerCase();
+    if (k === 'a') keys.a = false;
+    if (k === 'd') keys.d = false;
+    if (k === ' ' || k === 'w') keys.space = false;
 });
+
+// 屏幕点击重启（针对移动端死亡后）
+canvas.addEventListener('touchstart', () => { if (isGameOver) location.reload(); });
 </script>
 </body>
 </html>
